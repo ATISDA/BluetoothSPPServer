@@ -17,5 +17,16 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+        <Label Content="Label" HorizontalAlignment="Left" Margin="10,299,0,0" VerticalAlignment="Top" Width="187" FontSize="8" FontFamily="Calibri">
+            <Label.Style>
+                <Style TargetType="Label">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Path=DeviceConnected}" Value="False">
+                            <Setter Property="Content" Value="Scanner mit OS Verbunden" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Label.Style>
+        </Label>
     </Grid>
 </Window>

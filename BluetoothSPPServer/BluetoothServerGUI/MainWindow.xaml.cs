@@ -12,7 +12,7 @@ namespace BluetoothServerGUI
         {
             InitializeComponent();
             BTServer server = new BTServer();
-
+            DataContext = server;
         }
     }
 }
