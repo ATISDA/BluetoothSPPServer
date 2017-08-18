@@ -128,6 +128,34 @@ namespace BluetoothSPPServer
             Console.WriteLine(BC.Connected);
             stream = BC.GetStream();
             
+            if (stream.CanWrite)
+            {
+                byte[] data_conf = System.Text.Encoding.UTF8.GetBytes("$$%^5300");
+                //byte[] data_conf = new byte[8] { 0x24, 0x24, 0x25, 0x5e, 0x35, 0x33, 0x30, 0x30 };
+                //byte[] data_conf = new byte[9] { 126, 036, 036, 037, 094, 053, 051, 048, 048 };
+                //stream.Write(data_conf, 0, data_conf.Length);
+                //stream.WriteByte(0x7E);
+                //stream.WriteByte(0x24);
+                //stream.WriteByte(0x24);
+                //stream.WriteByte(0x25);
+                //stream.WriteByte(0x5e);
+                //stream.WriteByte(0x35);
+                //stream.WriteByte(0x33);
+                //stream.WriteByte(0x30);
+                //stream.WriteByte(0x30);
+                //.WriteByte(0x0d);     //Prefix 1/2
+                //.WriteByte(0x0a);     //Prefix 2/2
+                // stream.WriteByte(0x00);     //Length -> If Lens=8，then len0= 0x00, len1= 0x08.
+                //stream.WriteByte(0x33);     //Types -> Query Syntax types are ”0x33”, Response types are ”0x34”
+                //stream.Write(data_conf,0,data_conf.Length);     //Data
+                //byte lrc = 0xff^0x00^0x33^;
+                //stream.WriteByte();         //Data checkout value
+                //stream.Flush();
+                stream.WriteByte(0x3f);
+                Console.WriteLine("Fuck this, sended!");
+                //Console.WriteLine(Encoding.UTF8.GetString(data_conf));
+            }
+
             if (stream.CanRead)
             {
                 byte[] myReadBuffer = new byte[1024];
