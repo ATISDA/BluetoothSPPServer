@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace BluetoothSPPServer
 {
-    public class Code : INotifyPropertyChanged
+    public class Code
     {
         private DateTime timestamp;
         private string scanCode;
@@ -15,10 +15,11 @@ namespace BluetoothSPPServer
             this.scanCode = barcode;
         }
 
-        public DateTime Timestamp
+        public string Timestamp
         {
-            get { return timestamp;  }
-            set { timestamp = value; }
+            //get { return timestamp.ToShortDateString();  }
+            get { return timestamp.ToString("dd.MM.yyyy HH:mm:ss"); }
+            set { timestamp = DateTime.Parse(value); }
         }
 
         public string ScanCode
@@ -26,25 +27,12 @@ namespace BluetoothSPPServer
             get { return scanCode; }
             set { scanCode = value; }
         }
-
-        //INotifzPropertyChanged implementation
-        public event PropertyChangedEventHandler PropertyChanged;
-        private void NotifyPropertyChanged(String propertyName)
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }
     }
 
     public class Codes : ObservableCollection<Code>
     {
         public Codes()
         {
-            Add(new Code(new DateTime(1000), "45353"));
-            Add(new Code(new DateTime(25424524), "45554323353"));
-            Add(new Code(new DateTime(243693), "2588888"));
         }
     }
 }

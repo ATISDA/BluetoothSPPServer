@@ -5,28 +5,30 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BluetoothServerGUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
-    <Grid>
-        <ListBox HorizontalAlignment="Left" Height="235" Margin="10,10,0,0" VerticalAlignment="Top" Width="243" Name="scannedCodes" >
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <Grid Margin="10">
-                        <TextBlock Text="{Binding timestamp}" />
-                        <TextBlock Text="{Binding scanCode}" />
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
-        <Label Content="Label" HorizontalAlignment="Left" Margin="10,299,0,0" VerticalAlignment="Top" Width="187" FontSize="8" FontFamily="Calibri">
-            <Label.Style>
-                <Style TargetType="Label">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Path=DeviceConnected}" Value="False">
-                            <Setter Property="Content" Value="Scanner mit OS Verbunden" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Label.Style>
-        </Label>
+        Title="MainWindow" Height="350" Width="789" Loaded="Window_Loaded">
+    <Window.Resources>
+        <local:kasseAndreasDataSet x:Key="kasseAndreasDataSet"/>
+        <CollectionViewSource x:Key="stock_articlesViewSource" Source="{Binding stock_articles, Source={StaticResource kasseAndreasDataSet}}"/>
+    </Window.Resources>
+    <Grid >
+        <ListView Margin="10,10,0,39" Name="Codes" ItemsSource="{Binding Codes}"  HorizontalContentAlignment="Stretch" HorizontalAlignment="Left" Width="321">
+            <ListView.View>
+                <GridView AllowsColumnReorder="False">
+                    <GridViewColumn Header="Zeitstempel" DisplayMemberBinding="{Binding Timestamp}"/>
+                    <GridViewColumn Header="Barcode" DisplayMemberBinding="{Binding ScanCode}"/>
+                </GridView>
+            </ListView.View>
+        </ListView>
+        <TextBox Margin="10,0,10,10" TextWrapping="Wrap" Text="{Binding Path=DeviceStatus}" Height="24" VerticalAlignment="Bottom" />
+        <DataGrid DataContext="{StaticResource stock_articlesViewSource}" x:Name="stock_articlesDataGrid" AutoGenerateColumns="False" EnableRowVirtualization="True" ItemsSource="{Binding}" Margin="336,10,10,39" RowDetailsVisibilityMode="VisibleWhenSelected">
+            <DataGrid.Columns>
+                <DataGridTextColumn x:Name="idColumn" Binding="{Binding id}" Header="id" IsReadOnly="True" Width="SizeToHeader"/>
+                <DataGridTextColumn x:Name="article_numberColumn" Binding="{Binding article_number}" Header="article number" Width="SizeToHeader"/>
+                <DataGridTextColumn x:Name="article_nameColumn" Binding="{Binding article_name}" Header="article name" Width="SizeToHeader"/>
+                <DataGridTextColumn x:Name="article_barcodeColumn" Binding="{Binding article_barcode}" Header="article barcode" Width="SizeToHeader"/>
+                <DataGridTextColumn x:Name="article_stock_valueColumn" Binding="{Binding article_stock_value}" Header="article stock value" Width="SizeToHeader"/>
+                <DataGridTextColumn x:Name="article_stock_low_valueColumn" Binding="{Binding article_stock_low_value}" Header="article stock low value" Width="SizeToHeader"/>
+            </DataGrid.Columns>
+        </DataGrid>
     </Grid>
 </Window>

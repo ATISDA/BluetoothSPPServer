@@ -5,6 +5,7 @@ using InTheHand.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.ComponentModel;
+using System.Collections.ObjectModel;
 
 namespace BluetoothSPPServer
 {
@@ -20,8 +21,16 @@ namespace BluetoothSPPServer
         private BluetoothListener _listener = new BluetoothListener(EP);
         
         public event PropertyChangedEventHandler PropertyChanged;
+        private BackgroundWorker worker;
 
-        private bool deviceFound = true;
+        private Codes codes = new Codes();
+        public Codes Codes
+        {
+            get { return this.codes; }
+            set { this.codes = value; }
+        }
+
+        private bool deviceFound = false;
         /// <summary>
         /// True if the Device is found on the OS Bluetooth-List.
         /// </summary>
@@ -32,6 +41,7 @@ namespace BluetoothSPPServer
                 if (this.deviceFound != value)
                 {
                     this.deviceFound = value;
+                    this.DeviceStatus = "Gerät Betriebssystem bekannt";
                     this.OnPropertyChanged("DeviceFound"); // raising this event is key to have binding working properly
                 }
             }
@@ -45,33 +55,39 @@ namespace BluetoothSPPServer
             get { return deviceConnected; }
             set
             {
-                if (deviceConnected != value)
+                if (this.deviceConnected != value)
                 {
-                    deviceConnected = value;
-                    OnPropertyChanged("DeviceConnected"); // raising this event is key to have binding working properly
+                    this.deviceConnected = value;
+                    this.DeviceStatus = "Scanner verbunden";
+                    this.OnPropertyChanged("DeviceConnected"); // raising this event is key to have binding working properly
                 }
+            }
+        }
+
+        private string deviceStatus = "Status Unbekannt";
+        public string DeviceStatus {
+            get { 
+                return this.deviceStatus;
+            }
+            set {
+                this.deviceStatus = value;
+                this.OnPropertyChanged("DeviceStatus");
             }
         }
 
         public BTServer()
         {
-            BackgroundWorker worker = new BackgroundWorker();
+            worker = new BackgroundWorker();
             BC = new BluetoothClient(EP);
-            //BluetoothDeviceInfo[] devices = BC.DiscoverDevices(10, true, true, false);
-            //foreach (BluetoothDeviceInfo device in devices)
-            //{
-            //    string blueToothInfo = string.Format("- DeviceName: {0}{1}  Connected: {2}{1}  Address: {3}{1}  Last seen: {4}{1}  Last used: {5}{1}",
-            //               device.DeviceName, Environment.NewLine, device.Connected, device.DeviceAddress, device.LastSeen,
-            //               device.LastUsed);
-            //    Console.WriteLine(blueToothInfo);
-            //}
 
+            worker.WorkerReportsProgress = true;
             worker.DoWork += workerDoWork;
+            worker.ProgressChanged += worker_ProgressChanged;
             worker.RunWorkerAsync();
 
         }
 
-        private void workerDoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        private void workerDoWork(object sender, DoWorkEventArgs e)
         {
             do
             {
@@ -80,11 +96,12 @@ namespace BluetoothSPPServer
                 BTDevice.Refresh();
                 if (BTDevice.Connected)
                 {
-                    this.deviceFound = true;
+                    this.DeviceFound = true;
+                    //this.OnPropertyChanged("DeviceFound");
                     Console.WriteLine("Device connected");
                     if (!BC.Connected)
                     {
-                        this.deviceConnected = true;
+                        this.DeviceConnected = true;
                         Console.WriteLine("BC Connected");
                         if (BluetoothSecurity.PairRequest(BTDevice.DeviceAddress, "1234"))
                         {
@@ -111,11 +128,13 @@ namespace BluetoothSPPServer
                             Console.WriteLine("PairRequest: No");
                         }
                     }
+                    this.DeviceConnected = false;
                     System.Threading.Thread.Sleep(5000);
                 }
                 else
                 {
-                    this.deviceFound = false;
+                    this.DeviceFound = false;
+                    //this.OnPropertyChanged("DeviceFound");
                     Console.WriteLine("Refresh Device Status");
                     BTDevice.Refresh();
                     System.Threading.Thread.Sleep(5000);
@@ -123,39 +142,16 @@ namespace BluetoothSPPServer
             } while (true);
         }
 
+        private void worker_ProgressChanged(object sender, ProgressChangedEventArgs code)
+        {
+            codes.Add((Code)code.UserState);
+        }
+
         private async void Connect(IAsyncResult result)
         {
             Console.WriteLine(BC.Connected);
             stream = BC.GetStream();
             
-            if (stream.CanWrite)
-            {
-                byte[] data_conf = System.Text.Encoding.UTF8.GetBytes("$$%^5300");
-                //byte[] data_conf = new byte[8] { 0x24, 0x24, 0x25, 0x5e, 0x35, 0x33, 0x30, 0x30 };
-                //byte[] data_conf = new byte[9] { 126, 036, 036, 037, 094, 053, 051, 048, 048 };
-                //stream.Write(data_conf, 0, data_conf.Length);
-                //stream.WriteByte(0x7E);
-                //stream.WriteByte(0x24);
-                //stream.WriteByte(0x24);
-                //stream.WriteByte(0x25);
-                //stream.WriteByte(0x5e);
-                //stream.WriteByte(0x35);
-                //stream.WriteByte(0x33);
-                //stream.WriteByte(0x30);
-                //stream.WriteByte(0x30);
-                //.WriteByte(0x0d);     //Prefix 1/2
-                //.WriteByte(0x0a);     //Prefix 2/2
-                // stream.WriteByte(0x00);     //Length -> If Lens=8，then len0= 0x00, len1= 0x08.
-                //stream.WriteByte(0x33);     //Types -> Query Syntax types are ”0x33”, Response types are ”0x34”
-                //stream.Write(data_conf,0,data_conf.Length);     //Data
-                //byte lrc = 0xff^0x00^0x33^;
-                //stream.WriteByte();         //Data checkout value
-                //stream.Flush();
-                stream.WriteByte(0x3f);
-                Console.WriteLine("Fuck this, sended!");
-                //Console.WriteLine(Encoding.UTF8.GetString(data_conf));
-            }
-
             if (stream.CanRead)
             {
                 byte[] myReadBuffer = new byte[1024];
@@ -163,18 +159,32 @@ namespace BluetoothSPPServer
                 int numberOfBytesRead;
                 int counter = 0;
 
-            // Incoming message may be larger than the buffer size. 
-            do
-            {
-                if (stream.DataAvailable)
+                // Incoming message may be larger than the buffer size. 
+                do
                 {
-                    numberOfBytesRead = stream.Read(myReadBuffer, 0, myReadBuffer.Length);
-                    myCompleteMessage.AppendFormat("{0}", Encoding.ASCII.GetString(myReadBuffer, 0, numberOfBytesRead));
+                    if (stream.DataAvailable)
+                    {
+                        string date;
+                        string time;
+                        string code;
+                        DateTime timeStamp;
+                        numberOfBytesRead = stream.Read(myReadBuffer, 0, myReadBuffer.Length);
+                        myCompleteMessage.AppendFormat("{0}", Encoding.ASCII.GetString(myReadBuffer, 0, numberOfBytesRead));
+                        Char delimiter = ',';
+                        String[] parts = myCompleteMessage.ToString().Split(delimiter);
+                        Console.WriteLine("You received the following message : " + myCompleteMessage);
+
+                        date = parts[0];
+                        time = parts[1];
+                        code = parts[2].Trim();
+                        timeStamp = Convert.ToDateTime(date + " " + time);
                         
-                    Console.WriteLine("You received the following message : " + myCompleteMessage);
-                    myCompleteMessage.Clear();
-                    counter = 0;
+
+                        worker.ReportProgress(50, new Code(timeStamp, code));
+                        myCompleteMessage.Clear();
+                        counter = 0;
                     }
+
                     counter++;                
                     System.Threading.Thread.Sleep(100);
                 } while (BC.Connected && counter < 600);
@@ -191,9 +201,12 @@ namespace BluetoothSPPServer
             }
         }
 
-        void OnPropertyChanged(string propName)
+        private void OnPropertyChanged(string propName)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
+            var handler = PropertyChanged;
+            if (handler != null) handler(this, new PropertyChangedEventArgs(propName));
+
+            //PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propName));
         }
     }
 }
